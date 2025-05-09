@@ -1,5 +1,5 @@
-let IS_PROD = false;
+let IS_PROD = true;
 
-const server = IS_PROD ? 'https://videostream-z2ko.onrender.com' : 'http://localhost:8000';
+const server = IS_PROD ? 'https://videostream-66su.onrender.com' : 'http://localhost:8000';
 
 export default server;
