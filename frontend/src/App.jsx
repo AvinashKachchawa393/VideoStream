@@ -5,8 +5,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Authentication from './pages/authentication'
 import  {AuthProvider}  from './contexts/AuthContext.jsx'
 import VideoMeetComponent from './pages/VideoMeet.jsx'
-import history from './pages/history.jsx'
-import History from './pages/history.jsx'
+import history from './pages/History.jsx'
+import History from './pages/History.jsx'
 import HomeComponent from './pages/home.jsx'
 
 function App() {
