@@ -13,8 +13,9 @@ import MicOffIcon from '@mui/icons-material/MicOff';
 import ScreenShareIcon from '@mui/icons-material/ScreenShare';
 import StopScreenShareIocn from '@mui/icons-material/StopScreenShare';
 import ChatIcon from '@mui/icons-material/Chat';
+import server from '../environment'
 
-const serverURL = 'http://localhost:8000';
+const serverURL = server;
 var connections = {};
 
 const peerConfigConnections = {
