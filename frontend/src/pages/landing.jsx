@@ -39,7 +39,7 @@ export default function LandingPage() {
         </div>
 
         <div>
-          <img src="/mobile.png" alt="moblie app image" />
+          <img src="./mobile.png" alt="moblie app image" />
         </div>
       </div>
     </div>

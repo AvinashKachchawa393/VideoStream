@@ -51,7 +51,7 @@
 }
 .lobbyRoom{
     height: 100vh;
-    background-image: url('/background_join_video_call.png');
+    background-image: url('./background_join_video_call.png');
     background-size: 50%;
     background-repeat: no-repeat;
     background-position-x:right;
