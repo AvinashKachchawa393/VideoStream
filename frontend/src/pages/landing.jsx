@@ -11,7 +11,7 @@ export default function LandingPage() {
     <div className='landingPageContainer'>
       <nav>
         <div className='navHeader'>
-          <h2>VideoStream</h2>
+          <h2>AirStreem</h2>
         </div>
         <div className="navList">
           <p onClick={() => {
