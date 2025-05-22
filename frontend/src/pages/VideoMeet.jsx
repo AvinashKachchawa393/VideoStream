@@ -390,7 +390,7 @@ export default function VideoMeetComponent() {
 
         <h2><span style={{color:'blue'}}>Welcome</span> Kindly proceed to the lobby to begin your session.</h2>
         <h4>To get started, please provide your username</h4>
-        <TextField id="outlined-basic" label="Username" value={username} onChange={e => setUsername(e.target.value)} variant="outlined" />
+        <TextField required id="outlined-basic" label="Username" value={username} onChange={e => setUsername(e.target.value)} variant="outlined" />
         <Button variant="contained" onClick={connect}>Connect</Button>
 
         <div className={styles.lobbyVideo}>
@@ -415,7 +415,7 @@ export default function VideoMeetComponent() {
             </div>
             <div className={styles.chattingArea}>
           
-            <TextField  className={styles.chatting_input} value={message} onChange={e => setMessage(e.target.value)} id="outlined-basic" label="Enter your chat" variant="outlined" />
+            <TextField required className={styles.chatting_input} value={message} onChange={e => setMessage(e.target.value)} id="outlined-basic" label="Enter your chat" variant="outlined" />
             <Button  className={styles.chat_button} onClick={sendMessage} variant='contained'>Send</Button>
             </div>
           </div>
