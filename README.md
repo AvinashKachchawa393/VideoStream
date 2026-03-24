@@ -2,52 +2,237 @@
 
 A complete, production-ready **Hybrid Intrusion Detection System (IDS)** built on top of the AirStreem video-meeting platform.
 
+---
+
+## 🚀 How to Run
+
+Choose the method that works best for you:
+
+| Method | Best for | Time to start |
+|--------|----------|---------------|
+| [Option A — Docker Compose](#option-a--docker-compose-recommended) | Anyone — one command | ~3 min first run |
+| [Option B — Manual (local)](#option-b--manual-local-setup) | Development / debugging | ~10 min |
+
+---
+
+### Option A — Docker Compose (Recommended)
+
+> **Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker + Compose)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/AvinashKachchawa393/VideoStream.git
+cd VideoStream
+
+# 2. Start every service in one command
+docker compose up --build
+```
+
+That’s it. When all services are healthy you’ll see:
+
+| Service | URL |
+|---------|-----|
+| 🖥️  React Dashboard | http://localhost:5173 |
+| 🛡️  IDS Dashboard | http://localhost:5173/ids |
+| ⚙️  Node.js API | http://localhost:8000 |
+| 🤖  ML / AI API | http://localhost:5001/health |
+| 🗄️  MongoDB | localhost:27017 |
+
+To stop all services:
+```bash
+docker compose down
+```
+
+---
+
+### Option B — Manual (Local Setup)
+
+#### Prerequisites
+
+| Tool | Required | Install |
+|------|----------|---------|
+| Node.js ≥ 18 | ✅ | https://nodejs.org |
+| Python ≥ 3.10 | ✅ | https://python.org |
+| MongoDB ≥ 6 | ✅ | https://www.mongodb.com/try/download/community |
+| Git | ✅ | https://git-scm.com |
+| Apache Kafka ≥ 3 | ⬜ optional | https://kafka.apache.org/downloads |
+
+---
+
+#### Step 1 — Clone the repository
+
+```bash
+git clone https://github.com/AvinashKachchawa393/VideoStream.git
+cd VideoStream
+```
+
+---
+
+#### Step 2 — Configure environment variables
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+# Open backend/.env and set your MONGO_URI (see below)
+
+# Frontend (optional — defaults point to localhost:8000)
+cp frontend/.env.example frontend/.env
+```
+
+Key variable in `backend/.env`:
+
+```
+MONGO_URI=mongodb://localhost:27017/videostream-ids
+ML_API_URL=http://localhost:5001
+```
+
+---
+
+#### Step 3 — Install dependencies
+
+**All at once (from the repo root):**
+```bash
+npm run install:all
+```
+
+**Or manually, service by service:**
+```bash
+npm install               # root tooling (concurrently)
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
+cd ml_model && pip install -r requirements.txt && cd ..
+```
+
+---
+
+#### Step 4 — Start the services
+
+Open **four terminal windows / tabs** and run one command in each:
+
+**Terminal 1 — MongoDB** *(skip if already running)*
+```bash
+# macOS / Linux
+mongod --dbpath ~/data/db
+
+# Windows (adjust path to your MongoDB installation)
+"C:\Program Files\MongoDB\Server\7.0\bin\mongod.exe"
+```
+
+**Terminal 2 — Backend (Node.js)**
+```bash
+cd backend
+npm run dev
+# ✅ Server running on http://localhost:8000
+```
+
+**Terminal 3 — ML / AI API (Python)**
+```bash
+cd ml_model
+
+# Optional: pre-train models before starting the server
+python train.py --samples 5000 --epochs 20
+
+# Start the Flask API (auto-trains on first boot if no saved models exist)
+python api_server.py
+# ✅ ML API running on http://localhost:5001
+```
+
+**Terminal 4 — Frontend (React)**
+```bash
+cd frontend
+npm run dev
+# ✅ Frontend running on http://localhost:5173
+```
+
+---
+
+#### Step 5 — Open the app
+
+| Page | URL |
+|------|-----|
+| 🏠 Landing page | http://localhost:5173 |
+| 🔒 Register / Login | http://localhost:5173/auth |
+| 🏡 Home (video calls) | http://localhost:5173/home |
+| 🛡️ IDS Dashboard | http://localhost:5173/ids |
+
+Click **“Simulate Traffic Event”** on the IDS Dashboard to immediately see a live prediction, alert, and blockchain record.
+
+---
+
+#### Shortcut — start backend + frontend together
+
+From the **repo root** (requires MongoDB and the Python ML API to already be running):
+
+```bash
+npm run dev
+# Starts backend (port 8000) + frontend (port 5173) side-by-side
+```
+
+---
+
+### Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `MongoNetworkError` | Start MongoDB: `mongod --dbpath ~/data/db` |
+| `ML API unreachable` | Run `python api_server.py` inside `ml_model/` |
+| Port already in use | Change `PORT=` in `backend/.env`; for Vite use `npm run dev -- --port 3000` |
+| `npm ERR! missing script` | Run `npm install` inside `backend/` or `frontend/` first |
+| `ModuleNotFoundError` (Python) | Run `pip install -r ml_model/requirements.txt` |
+| Frontend shows blank page | Open browser devtools; confirm the backend is reachable on port 8000 |
+
+---
+
 ## 🏗️ Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Frontend (React)                          │
 │  Dashboard · Alert Table · XAI (LIME/SHAP) · Blockchain Audit   │
-└───────────────────────────┬─────────────────────────────────────┘
+└───────────────────────────⬂───────────────────────────────────┘
                             │ REST + Socket.IO
-┌───────────────────────────▼─────────────────────────────────────┐
+┌───────────────────────────▼───────────────────────────────────┐
 │                   Backend (Node.js / Express)                    │
 │   /api/v1/ids/*  →  IDS Routes  →  IDS Controller               │
 │   MongoDB (Alert + BlockchainRecord models)                      │
 │   Socket.IO real-time alerts                                     │
 └─────────────┬───────────────────────────┬───────────────────────┘
               │ HTTP                       │ Simulated Kafka events
-┌─────────────▼─────────────┐  ┌──────────▼──────────────────────┐
+┌─────────────▼───────────┐  ┌──────────▼───────────────────────┐
 │   Python ML API (Flask)   │  │   Apache Kafka (optional)        │
 │   POST /predict           │  │   Topic: network-traffic         │
 │   POST /explain/lime      │  │   kafka_consumer.py              │
 │   POST /explain/shap      │  └─────────────────────────────────┘
 │   GET  /explain/shap/global│
-└─────────────┬─────────────┘
-┌─────────────▼─────────────────────────────────────────────────┐
+└─────────────┬───────────┘
+┌─────────────▼─────────────────────────────────────┐
 │                     ML Model Pipeline                          │
-│  ┌─────────┐  ┌──────────────────────────┐  ┌─────────────┐  │
+│  ┌─────────┐  ┌──────────────────────────┐  ┌───────────┐  │
 │  │ PCA     │→ │ CNN + LSTM (deep feats)  │→ │ Random      │  │
 │  │ SMOTE   │  │ feature extraction       │  │ Forest      │  │
-│  └─────────┘  └──────────────────────────┘  └─────────────┘  │
+│  └─────────┘  └──────────────────────────┘  └───────────┘  │
 │  ┌──────────────────────────┐                                  │
 │  │ LSTM Autoencoder          │  ← Zero-day / anomaly detect.  │
 │  └──────────────────────────┘                                  │
 │  ┌──────────┐  ┌──────────┐                                    │
 │  │   LIME   │  │   SHAP   │  ← Explainable AI                 │
 │  └──────────┘  └──────────┘                                    │
-└────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────────┐
 │              Blockchain (Ethereum / AlertRegistry.sol)           │
 │  Immutable alert records · SHA-256 / keccak256 data hashing     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+---
+
 ## 📦 Project Structure
 
 ```
 VideoStream/
 ├── backend/
+│   ├── .env.example                    # ← copy to .env and fill in values
+│   ├── Dockerfile
 │   └── src/
 │       ├── app.js                          # Express server entry point
 │       ├── controllers/
@@ -64,6 +249,8 @@ VideoStream/
 │           └── user.routes.js
 │
 ├── frontend/
+│   ├── .env.example                    # ← copy to .env (optional)
+│   ├── Dockerfile
 │   └── src/
 │       ├── components/ids/
 │       │   ├── AlertTable.jsx              # Paginated alert log
@@ -77,122 +264,34 @@ VideoStream/
 │           └── idsApi.js                   # Axios IDS API client
 │
 ├── ml_model/
-│   ├── api_server.py                       # Flask REST API for ML
-│   ├── autoencoder.py                      # LSTM Autoencoder (anomaly)
-│   ├── kafka_consumer.py                   # Kafka integration
-│   ├── model.py                            # Hybrid CNN+LSTM+RF model
-│   ├── preprocessing.py                    # PCA + SMOTE pipeline
-│   ├── requirements.txt                    # Python dependencies
-│   ├── train.py                            # Training entry point
-│   └── xai.py                             # LIME + SHAP explainers
+│   ├── Dockerfile
+│   ├── api_server.py                   # Flask REST API for ML
+│   ├── autoencoder.py                  # LSTM Autoencoder (anomaly)
+│   ├── kafka_consumer.py               # Kafka integration
+│   ├── model.py                        # Hybrid CNN+LSTM+RF model
+│   ├── preprocessing.py                # PCA + SMOTE pipeline
+│   ├── requirements.txt                # Python dependencies
+│   ├── train.py                        # Training entry point
+│   └── xai.py                          # LIME + SHAP explainers
 │
-└── blockchain/
-    ├── contracts/
-    │   └── AlertRegistry.sol               # Solidity smart contract
-    ├── scripts/
-    │   └── deploy.js                       # Hardhat deployment script
-    ├── hardhat.config.js
-    └── package.json
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-| Tool | Version |
-|------|---------|
-| Node.js | ≥ 18 |
-| Python | ≥ 3.10 |
-| MongoDB | ≥ 6 |
-| Apache Kafka | ≥ 3 (optional) |
-
----
-
-### 1. Backend (Node.js)
-
-```bash
-cd backend
-npm install
-# Set environment variables
-export MONGO_URI="mongodb://localhost:27017/ids"
-export ML_API_URL="http://localhost:5001"
-npm run dev
-# Server starts on http://localhost:8000
-```
-
----
-
-### 2. ML API (Python)
-
-```bash
-cd ml_model
-pip install -r requirements.txt
-
-# Train models (generates synthetic data if no dataset available)
-python train.py --samples 5000 --epochs 20 --pca-components 20
-
-# Start Flask API server
-python api_server.py
-# API starts on http://localhost:5001
-```
-
-To use a real dataset (CICIDS2017, UNSW-NB15, or TON-IoT):
-1. Download the dataset and place it in `ml_model/data/`
-2. Update `preprocessing.py` → `FEATURE_COLUMNS` to match dataset columns
-3. Re-run `python train.py`
-
----
-
-### 3. Frontend (React)
-
-```bash
-cd frontend
-npm install
-npm run dev
-# Frontend starts on http://localhost:5173
-
-# Navigate to the IDS Dashboard:
-# http://localhost:5173/ids
-```
-
----
-
-### 4. Blockchain (optional)
-
-```bash
-cd blockchain
-npm install
-
-# Start a local Hardhat node
-npm run node
-
-# Deploy the contract (in a new terminal)
-npm run deploy:local
-```
-
----
-
-### 5. Apache Kafka (optional)
-
-```bash
-# Start Zookeeper
-bin/zookeeper-server-start.sh config/zookeeper.properties
-
-# Start Kafka broker
-bin/kafka-server-start.sh config/server.properties
-
-# Create topic
-bin/kafka-topics.sh --create --topic network-traffic --bootstrap-server localhost:9092
-
-# The ml_model/kafka_consumer.py will auto-connect when Kafka is running
-# Otherwise, it falls back to simulated event generation automatically
+├── blockchain/
+│   ├── contracts/
+│   │   └── AlertRegistry.sol           # Solidity smart contract
+│   ├── scripts/
+│   │   └── deploy.js                   # Hardhat deployment script
+│   ├── hardhat.config.js
+│   └── package.json
+│
+├── docker-compose.yml              # ← one-command startup
+├── package.json                    # root scripts (npm run dev / install:all)
+└── README.md
 ```
 
 ---
 
 ## 🔌 REST API Reference
 
-### IDS Endpoints — `POST /api/v1/ids`
+### IDS Endpoints — `/api/v1/ids`
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -309,7 +408,23 @@ The `AlertRegistry.sol` smart contract provides:
 - **Access control** — only whitelisted IDS nodes can write
 - **Audit trail** — public read access for compliance
 
-In production, deploy to Ethereum Sepolia testnet and set `BLOCKCHAIN_CONTRACT_ADDRESS` in the backend environment.
+### Optional: Deploy to local Hardhat node
+
+```bash
+cd blockchain
+npm install
+
+# Terminal A — local chain
+npm run node
+
+# Terminal B — deploy
+npm run deploy:local
+```
+
+To deploy to Sepolia testnet, set `SEPOLIA_RPC_URL` and `PRIVATE_KEY` in `blockchain/.env` and run:
+```bash
+npm run deploy:sepolia
+```
 
 ---
 
@@ -326,32 +441,31 @@ In production, deploy to Ethereum Sepolia testnet and set `BLOCKCHAIN_CONTRACT_A
 
 ## 🧪 Testing Guide
 
-### Unit test the ML model
+### Quick smoke test (no services needed)
 ```bash
 cd ml_model
 python -c "
 from preprocessing import generate_synthetic_dataset, DataPreprocessor
 from model import HybridIDSModel
-import numpy as np
+from sklearn.model_selection import train_test_split
 
 df = generate_synthetic_dataset(500)
 pre = DataPreprocessor(n_components=10)
 X, y = pre.fit_transform(df)
 model = HybridIDSModel(input_dim=10)
-from sklearn.model_selection import train_test_split
 X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)
 model.train(X_tr, y_tr, epochs=2)
-metrics = model.evaluate(X_te, y_te, list(pre.label_encoder.classes_))
-print('Accuracy:', metrics['accuracy'])
+m = model.evaluate(X_te, y_te, list(pre.label_encoder.classes_))
+print('Accuracy:', m['accuracy'])
 "
 ```
 
-### Test the REST API
+### Test the ML REST API
 ```bash
 # Health check
 curl http://localhost:5001/health
 
-# Random prediction
+# Prediction
 curl -X POST http://localhost:5001/predict \
   -H "Content-Type: application/json" \
   -d '{"features": {"src_bytes": 50000, "count": 500}}'
@@ -359,7 +473,7 @@ curl -X POST http://localhost:5001/predict \
 
 ### Test the IDS backend
 ```bash
-# Simulate 10 traffic events
+# Send 10 simulated traffic events
 for i in $(seq 1 10); do
   curl -s -X POST http://localhost:8000/api/v1/ids/ingest \
     -H "Content-Type: application/json" \
@@ -367,7 +481,7 @@ for i in $(seq 1 10); do
     python -m json.tool
 done
 
-# Check stats
+# View dashboard stats
 curl http://localhost:8000/api/v1/ids/stats | python -m json.tool
 ```
 
@@ -380,7 +494,7 @@ curl http://localhost:8000/api/v1/ids/stats | python -m json.tool
 - Blockchain records use SHA-256 / keccak256 for tamper detection
 - Smart contract uses `onlyAuthorized` modifier for write access
 - Source IPs can be hashed before blockchain storage for GDPR compliance
-- Rate limiting should be added to `/ingest` in production (`express-rate-limit`)
+- All IDS write endpoints are rate-limited (`express-rate-limit`)
 
 ---
 
