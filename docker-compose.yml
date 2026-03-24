@@ -1,0 +1,90 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI-Powered IDS  —  Docker Compose
+#
+# Starts all services in the correct order:
+#   mongodb  →  backend  +  ml-api  →  frontend
+#
+# Usage:
+#   docker compose up --build          # start everything
+#   docker compose up --build -d       # detached (background)
+#   docker compose down                # stop and remove containers
+#   docker compose logs -f backend     # tail a specific service log
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── MongoDB ────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: ids_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Node.js / Express Backend ──────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ids_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      MONGO_URI: mongodb://mongodb:27017/videostream-ids
+      ML_API_URL: http://ml-api:5001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/home"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Python Flask ML API ────────────────────────────────────────────────────
+  ml-api:
+    build:
+      context: ./ml_model
+      dockerfile: Dockerfile
+    container_name: ids_ml_api
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      ML_API_PORT: 5001
+    volumes:
+      - ml_models:/app/saved_models   # persist trained models across restarts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s   # extra time for first-run model training
+
+  # ── React Frontend (served via Vite preview) ───────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ids_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongodb_data:
+  ml_models:
